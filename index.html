@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>H4M — Exclusive Viewing</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Inter:wght@300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #2d7a4f;
+    --green-light: #3fa66b;
+    --green-glow: rgba(45,122,79,0.35);
+    --black: #080c09;
+    --dark: #0f1a12;
+    --card: #141f17;
+    --border: rgba(45,122,79,0.25);
+    --text: #e8f0ea;
+    --muted: #7a9e82;
+  }
+  html, body { height: 100%; background: var(--black); color: var(--text); font-family: 'Inter', sans-serif; overflow: hidden; }
+
+  /* PASSWORD SCREEN */
+  #password-screen {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: var(--black); z-index: 100; padding: 24px;
+  }
+  .logo-text {
+    font-family: 'Montserrat', sans-serif; font-weight: 900;
+    font-size: clamp(48px, 10vw, 96px); letter-spacing: -2px;
+    color: var(--green-light); text-shadow: 0 0 40px var(--green-glow); margin-bottom: 8px;
+  }
+  .logo-sub { font-size: 11px; font-weight: 500; letter-spacing: 4px; color: var(--muted); text-transform: uppercase; margin-bottom: 48px; }
+  .pw-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 40px 36px; width: 100%; max-width: 400px; text-align: center;
+  }
+  .pw-card h2 { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 18px; margin-bottom: 8px; }
+  .pw-card p { font-size: 13px; color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
+  .pw-input {
+    width: 100%; background: var(--dark); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px; font-size: 16px; color: var(--text);
+    text-align: center; letter-spacing: 4px; outline: none; transition: border-color 0.2s;
+    font-family: 'Montserrat', sans-serif; font-weight: 600; margin-bottom: 16px;
+  }
+  .pw-input:focus { border-color: var(--green-light); }
+  .name-input {
+    width: 100%; background: var(--dark); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px; font-size: 14px; color: var(--text);
+    text-align: center; outline: none; transition: border-color 0.2s;
+    font-family: 'Inter', sans-serif; margin-bottom: 16px; letter-spacing: 1px;
+  }
+  .name-input:focus { border-color: var(--green-light); }
+  .pw-btn {
+    width: 100%; background: var(--green); color: #fff; border: none;
+    border-radius: 10px; padding: 14px; font-family: 'Montserrat', sans-serif;
+    font-weight: 700; font-size: 15px; letter-spacing: 1px; cursor: pointer; transition: background 0.2s;
+  }
+  .pw-btn:hover { background: var(--green-light); }
+  .pw-error { color: #e05555; font-size: 13px; margin-top: 12px; display: none; }
+
+  /* LOADING */
+  #loading-screen {
+    display: none; position: fixed; inset: 0;
+    background: var(--black); align-items: center; justify-content: center;
+    flex-direction: column; z-index: 99;
+  }
+  #loading-screen.active { display: flex; }
+  .spinner {
+    width: 48px; height: 48px; border: 3px solid var(--border);
+    border-top-color: var(--green-light); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin-bottom: 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: var(--muted); letter-spacing: 1px; }
+
+  /* CINEMA SCREEN */
+  #cinema-screen {
+    display: none; position: fixed; inset: 0;
+    background: #000; flex-direction: column; align-items: center; justify-content: center;
+  }
+  #cinema-screen.active { display: flex; }
+  .cinema-header {
+    position: absolute; top: 0; left: 0; right: 0; padding: 16px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); z-index: 10;
+  }
+  .cinema-logo { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 22px; color: var(--green-light); }
+  .cinema-badge {
+    background: rgba(45,122,79,0.2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 6px 14px; font-size: 11px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase;
+  }
+  .video-wrapper { position: relative; width: 100%; max-width: 960px; aspect-ratio: 16/9; background: #000; }
+  #drive-frame { width: 100%; height: 100%; border: none; display: block; }
+  .video-blocker { position: absolute; inset: 0; z-index: 5; cursor: default; background: transparent; }
+  .progress-bar-wrap { position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: rgba(255,255,255,0.1); z-index: 6; }
+  .progress-bar-fill { height: 100%; background: var(--green-light); width: 0%; transition: width 1s linear; box-shadow: 0 0 8px var(--green-glow); }
+  .warning-strip {
+    position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.7); border: 1px solid var(--border); border-radius: 20px;
+    padding: 8px 20px; font-size: 12px; color: var(--muted); white-space: nowrap; z-index: 10;
+  }
+
+  /* END SCREEN */
+  #end-screen {
+    display: none; position: fixed; inset: 0; background: var(--black);
+    flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 24px; z-index: 200;
+  }
+  #end-screen.active { display: flex; }
+  .end-icon { font-size: 56px; margin-bottom: 20px; }
+  .end-title { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: clamp(28px, 6vw, 48px); color: var(--green-light); margin-bottom: 12px; text-shadow: 0 0 30px var(--green-glow); }
+  .end-sub { font-size: 15px; color: var(--muted); max-width: 420px; line-height: 1.7; margin-bottom: 36px; }
+  .end-btn { display: inline-block; background: var(--green); color: #fff; text-decoration: none; border-radius: 12px; padding: 16px 40px; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 1px; transition: background 0.2s; margin: 8px; }
+  .end-btn:hover { background: var(--green-light); }
+  .end-btn.outline { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .end-btn.outline:hover { border-color: var(--green-light); color: var(--text); }
+  .countdown { font-size: 13px; color: var(--muted); margin-top: 20px; }
+  .countdown span { color: var(--green-light); font-weight: 700; }
+
+  /* EXPIRED */
+  #expired-screen {
+    display: none; position: fixed; inset: 0; background: var(--black);
+    flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 24px; z-index: 300;
+  }
+  #expired-screen.active { display: flex; }
+</style>
+</head>
+<body>
+
+<!-- PASSWORD SCREEN -->
+<div id="password-screen">
+  <div class="logo-text">H4M</div>
+  <div class="logo-sub">Hyperformance · High Per 4 Months</div>
+  <div class="pw-card">
+    <h2>🔒 Exclusive Content</h2>
+    <p>Para makita ang video na ito, kailangan mo ng access password mula sa iyong inviter.</p>
+    <input class="name-input" type="text" id="viewer-name" placeholder="Ilagay ang iyong pangalan" autocomplete="off"/>
+    <input class="pw-input" type="password" id="pw-input" placeholder="••••••••" maxlength="20" autocomplete="off"/>
+    <button class="pw-btn" onclick="checkPassword()">ENTER →</button>
+    <div class="pw-error" id="pw-error">❌ Mali ang password. Subukan ulit.</div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <div class="loading-text">Checking access...</div>
+</div>
+
+<!-- EXPIRED -->
+<div id="expired-screen">
+  <div class="logo-text">H4M</div>
+  <div class="logo-sub">Hyperformance · High Per 4 Months</div>
+  <div class="pw-card">
+    <h2>⛔ Access Expired</h2>
+    <p>One-time viewing lang ang allowed.<br>Makipag-ugnayan kay <strong style="color:var(--green-light)">Virgil Shane</strong> para sa bagong access.</p>
+    <a class="pw-btn" style="display:block;text-decoration:none;text-align:center;margin-top:8px" href="https://www.facebook.com/LIGRIV513" target="_blank">💬 Message sa FB</a>
+  </div>
+</div>
+
+<!-- CINEMA SCREEN -->
+<div id="cinema-screen">
+  <div class="cinema-header">
+    <div class="cinema-logo">H4M</div>
+    <div class="cinema-badge">🎬 One-Time Viewing</div>
+  </div>
+  <div class="video-wrapper">
+    <iframe id="drive-frame"
+      src="https://drive.google.com/file/d/1fhrj54BlWCY6xH7i1NnNP1E9YZJJW7pL/preview"
+      allow="autoplay" allowfullscreen="false"></iframe>
+    <div class="video-blocker" oncontextmenu="return false;"></div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+  </div>
+  <div class="warning-strip">⚠️ Hindi pwedeng i-skip, i-rewind, o i-pause ang video na ito.</div>
+</div>
+
+<!-- END SCREEN -->
+<div id="end-screen">
+  <div class="end-icon">🎉</div>
+  <div class="end-title">Salamat sa Panonood!</div>
+  <div class="end-sub">Ngayon alam mo na ang sistema.<br>Handa ka na bang simulan ang iyong journey?<br><strong style="color:var(--green-light)">Makipag-ugnayan na kay Virgil Shane!</strong></div>
+  <div>
+    <a class="end-btn" href="https://www.facebook.com/LIGRIV513" target="_blank">💬 Message Mo Ako sa FB</a>
+  </div>
+  <div class="countdown">Ire-redirect ka sa Facebook in <span id="cd">10</span> seconds...</div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, get, set, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // 🔧 PALITAN NG IYONG FIREBASE CONFIG (makukuha sa Firebase Console)
+  const firebaseConfig = {
+    apiKey: "PASTE_YOUR_API_KEY_HERE",
+    authDomain: "PASTE_YOUR_AUTH_DOMAIN_HERE",
+    databaseURL: "PASTE_YOUR_DATABASE_URL_HERE",
+    projectId: "PASTE_YOUR_PROJECT_ID_HERE",
+    storageBucket: "PASTE_YOUR_STORAGE_BUCKET_HERE",
+    messagingSenderId: "PASTE_YOUR_MESSAGING_SENDER_ID_HERE",
+    appId: "PASTE_YOUR_APP_ID_HERE"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const VIEWER_PASSWORD = "h4m2026";
+  const VIDEO_DURATION_SECONDS = 300; // ← Palitan ng duration ng video mo in seconds
+  const FB_LINK = "https://www.facebook.com/LIGRIV513";
+
+  window.checkPassword = async function() {
+    const name = document.getElementById('viewer-name').value.trim();
+    const pass = document.getElementById('pw-input').value.trim();
+    const error = document.getElementById('pw-error');
+
+    if (!name) {
+      error.textContent = "❌ Ilagay ang iyong pangalan.";
+      error.style.display = 'block';
+      return;
+    }
+
+    if (pass !== VIEWER_PASSWORD) {
+      error.textContent = "❌ Mali ang password. Subukan ulit.";
+      error.style.display = 'block';
+      document.getElementById('pw-input').value = '';
+      return;
+    }
+
+    error.style.display = 'none';
+    document.getElementById('password-screen').style.display = 'none';
+    document.getElementById('loading-screen').classList.add('active');
+
+    // Clean name for Firebase key
+    const nameKey = name.replace(/[.#$[\]]/g, '_').toLowerCase().replace(/\s+/g, '_');
+    const viewerRef = ref(db, 'viewers/' + nameKey);
+
+    try {
+      const snapshot = await get(viewerRef);
+
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        if (data.watched && !data.reset) {
+          // Already watched, not reset
+          document.getElementById('loading-screen').classList.remove('active');
+          document.getElementById('expired-screen').classList.add('active');
+          return;
+        }
+      }
+
+      // Log this viewer
+      await set(viewerRef, {
+        name: name,
+        watched: false,
+        reset: false,
+        lastAccess: new Date().toISOString()
+      });
+
+      document.getElementById('loading-screen').classList.remove('active');
+      startCinema(nameKey, viewerRef, update);
+
+    } catch(e) {
+      // If Firebase fails, still allow viewing (fallback)
+      document.getElementById('loading-screen').classList.remove('active');
+      startCinema(nameKey, viewerRef, update);
+    }
+  }
+
+  document.getElementById('pw-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') window.checkPassword();
+  });
+
+  function startCinema(nameKey, viewerRef, update) {
+    document.getElementById('cinema-screen').classList.add('active');
+
+    const fill = document.getElementById('progress-fill');
+    let elapsed = 0;
+
+    const interval = setInterval(async () => {
+      elapsed++;
+      fill.style.width = Math.min((elapsed / VIDEO_DURATION_SECONDS) * 100, 100) + '%';
+      if (elapsed >= VIDEO_DURATION_SECONDS) {
+        clearInterval(interval);
+        // Mark as watched in Firebase
+        await update(viewerRef, { watched: true, reset: false, watchedAt: new Date().toISOString() });
+        showEndScreen();
+      }
+    }, 1000);
+
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('keydown', e => {
+      if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','f','F','k','K','j','J','l','L'].includes(e.key)) {
+        e.preventDefault();
+      }
+    });
+  }
+
+  function showEndScreen() {
+    document.getElementById('cinema-screen').classList.remove('active');
+    document.getElementById('end-screen').classList.add('active');
+    let cd = 10;
+    const cdEl = document.getElementById('cd');
+    const t = setInterval(() => {
+      cd--;
+      cdEl.textContent = cd;
+      if (cd <= 0) { clearInterval(t); window.location.href = FB_LINK; }
+    }, 1000);
+  }
+</script>
+</body>
+</html>

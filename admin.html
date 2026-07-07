@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>H4M Admin Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Inter:wght@300;400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #2d7a4f; --green-light: #3fa66b; --green-glow: rgba(45,122,79,0.35);
+    --black: #080c09; --dark: #0f1a12; --card: #141f17; --border: rgba(45,122,79,0.25);
+    --text: #e8f0ea; --muted: #7a9e82; --red: #e05555; --yellow: #e0a955;
+  }
+  html, body { min-height: 100%; background: var(--black); color: var(--text); font-family: 'Inter', sans-serif; }
+
+  /* LOGIN */
+  #login-screen {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; background: var(--black); z-index: 100; padding: 24px;
+  }
+  .logo-text { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 64px; color: var(--green-light); text-shadow: 0 0 40px var(--green-glow); margin-bottom: 6px; }
+  .logo-sub { font-size: 11px; letter-spacing: 4px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .admin-badge { background: rgba(224,169,85,0.15); border: 1px solid rgba(224,169,85,0.3); color: #e0a955; border-radius: 20px; padding: 4px 14px; font-size: 11px; letter-spacing: 2px; margin-bottom: 40px; }
+  .pw-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 40px 36px; width: 100%; max-width: 380px; text-align: center; }
+  .pw-card h2 { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 18px; margin-bottom: 8px; }
+  .pw-card p { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+  .pw-input { width: 100%; background: var(--dark); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; font-size: 16px; color: var(--text); text-align: center; letter-spacing: 4px; outline: none; font-family: 'Montserrat', sans-serif; font-weight: 600; margin-bottom: 16px; }
+  .pw-input:focus { border-color: #e0a955; }
+  .pw-btn { width: 100%; background: var(--green); color: #fff; border: none; border-radius: 10px; padding: 14px; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; }
+  .pw-btn:hover { background: var(--green-light); }
+  .pw-error { color: var(--red); font-size: 13px; margin-top: 12px; display: none; }
+
+  /* DASHBOARD */
+  #dashboard { display: none; min-height: 100vh; }
+  #dashboard.active { display: block; }
+
+  .top-bar {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .top-logo { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 24px; color: var(--green-light); }
+  .top-badge { background: rgba(224,169,85,0.15); border: 1px solid rgba(224,169,85,0.3); color: #e0a955; border-radius: 20px; padding: 4px 14px; font-size: 11px; letter-spacing: 2px; }
+  .logout-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 6px 14px; font-size: 12px; cursor: pointer; }
+  .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+  .content { padding: 32px 24px; max-width: 900px; margin: 0 auto; }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }
+  .stat-number { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 36px; color: var(--green-light); }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* SETTINGS */
+  .section-title { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 16px; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .settings-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  .setting-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .setting-row:last-child { margin-bottom: 0; }
+  .setting-label { font-size: 13px; color: var(--muted); min-width: 120px; }
+  .setting-input { flex: 1; background: var(--dark); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 14px; color: var(--text); outline: none; min-width: 200px; }
+  .setting-input:focus { border-color: var(--green-light); }
+  .save-btn { background: var(--green); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .save-btn:hover { background: var(--green-light); }
+
+  /* VIEWERS TABLE */
+  .viewers-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+  .viewers-header { padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .refresh-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 6px 14px; font-size: 12px; cursor: pointer; }
+  .refresh-btn:hover { border-color: var(--green-light); color: var(--green-light); }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: var(--dark); padding: 12px 16px; text-align: left; font-size: 11px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+  td { padding: 14px 16px; font-size: 13px; border-bottom: 1px solid rgba(45,122,79,0.1); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(45,122,79,0.05); }
+
+  .status-badge { display: inline-block; border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
+  .status-watched { background: rgba(224,85,85,0.15); color: var(--red); border: 1px solid rgba(224,85,85,0.3); }
+  .status-pending { background: rgba(224,169,85,0.15); color: var(--yellow); border: 1px solid rgba(224,169,85,0.3); }
+  .status-reset { background: rgba(45,122,79,0.15); color: var(--green-light); border: 1px solid var(--border); }
+
+  .action-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; margin-right: 4px; }
+  .action-btn:hover { border-color: var(--green-light); color: var(--green-light); }
+  .action-btn.danger:hover { border-color: var(--red); color: var(--red); }
+
+  .empty-state { text-align: center; padding: 48px; color: var(--muted); font-size: 14px; }
+
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: #fff; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; z-index: 999; display: none; animation: slideIn 0.3s ease; }
+  @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  @media (max-width: 600px) {
+    .top-bar { flex-wrap: wrap; gap: 8px; }
+    th:nth-child(3), td:nth-child(3) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="logo-text">H4M</div>
+  <div class="logo-sub">Hyperformance · High Per 4 Months</div>
+  <div class="admin-badge">⚙️ ADMIN ACCESS</div>
+  <div class="pw-card">
+    <h2>🔐 Admin Login</h2>
+    <p>Para sa authorized admin lang ito.</p>
+    <input class="pw-input" type="password" id="admin-pw" placeholder="••••••••" maxlength="30" autocomplete="off"/>
+    <button class="pw-btn" onclick="adminLogin()">LOGIN →</button>
+    <div class="pw-error" id="admin-error">❌ Mali ang password.</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="top-bar">
+    <div class="top-logo">H4M</div>
+    <div class="top-badge">⚙️ ADMIN DASHBOARD</div>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+
+  <div class="content">
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number" id="stat-total">0</div>
+        <div class="stat-label">Total Viewers</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-watched" style="color:#e05555">0</div>
+        <div class="stat-label">Watched</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-pending" style="color:#e0a955">0</div>
+        <div class="stat-label">Pending</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-reset" style="color:var(--green-light)">0</div>
+        <div class="stat-label">Reset/Active</div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="section-title">⚙️ Settings</div>
+    <div class="settings-card">
+      <div class="setting-row">
+        <div class="setting-label">Viewer Password</div>
+        <input class="setting-input" id="set-viewer-pass" type="text" placeholder="h4m2026"/>
+        <button class="save-btn" onclick="saveSetting('viewerPassword', 'set-viewer-pass')">Save</button>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">Video Duration (sec)</div>
+        <input class="setting-input" id="set-duration" type="number" placeholder="300"/>
+        <button class="save-btn" onclick="saveSetting('videoDuration', 'set-duration')">Save</button>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">Google Drive ID</div>
+        <input class="setting-input" id="set-video-id" type="text" placeholder="File ID"/>
+        <button class="save-btn" onclick="saveSetting('videoId', 'set-video-id')">Save</button>
+      </div>
+    </div>
+
+    <!-- VIEWERS -->
+    <div class="section-title">👥 Viewers</div>
+    <div class="viewers-card">
+      <div class="viewers-header">
+        <div style="font-size:14px;font-weight:600">All Viewers</div>
+        <button class="refresh-btn" onclick="loadViewers()">🔄 Refresh</button>
+      </div>
+      <div id="viewers-table-wrap">
+        <div class="empty-state">Loading viewers...</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, get, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // 🔧 SAME FIREBASE CONFIG — PALITAN NG IYONG CONFIG
+  const firebaseConfig = {
+    apiKey: "PASTE_YOUR_API_KEY_HERE",
+    authDomain: "PASTE_YOUR_AUTH_DOMAIN_HERE",
+    databaseURL: "PASTE_YOUR_DATABASE_URL_HERE",
+    projectId: "PASTE_YOUR_PROJECT_ID_HERE",
+    storageBucket: "PASTE_YOUR_STORAGE_BUCKET_HERE",
+    messagingSenderId: "PASTE_YOUR_MESSAGING_SENDER_ID_HERE",
+    appId: "PASTE_YOUR_APP_ID_HERE"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const ADMIN_PASSWORD = "AdminH4M";
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3000);
+  }
+
+  window.adminLogin = function() {
+    const pw = document.getElementById('admin-pw').value;
+    if (pw === ADMIN_PASSWORD) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('dashboard').classList.add('active');
+      loadViewers();
+      loadSettings();
+    } else {
+      document.getElementById('admin-error').style.display = 'block';
+      document.getElementById('admin-pw').value = '';
+    }
+  }
+
+  document.getElementById('admin-pw').addEventListener('keydown', e => {
+    if (e.key === 'Enter') window.adminLogin();
+  });
+
+  window.logout = function() {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('dashboard').classList.remove('active');
+    document.getElementById('admin-pw').value = '';
+  }
+
+  window.loadViewers = async function() {
+    const wrap = document.getElementById('viewers-table-wrap');
+    wrap.innerHTML = '<div class="empty-state">Loading...</div>';
+
+    try {
+      const snapshot = await get(ref(db, 'viewers'));
+      if (!snapshot.exists()) {
+        wrap.innerHTML = '<div class="empty-state">Wala pang viewers. Share the link!</div>';
+        updateStats(0, 0, 0, 0);
+        return;
+      }
+
+      const viewers = snapshot.val();
+      const keys = Object.keys(viewers);
+      let watched = 0, pending = 0, resetCount = 0;
+
+      let rows = keys.map(key => {
+        const v = viewers[key];
+        if (v.watched && !v.reset) watched++;
+        else if (!v.watched) pending++;
+        else resetCount++;
+
+        const status = v.watched && !v.reset
+          ? '<span class="status-badge status-watched">Watched</span>'
+          : v.reset
+          ? '<span class="status-badge status-reset">Reset ✓</span>'
+          : '<span class="status-badge status-pending">Pending</span>';
+
+        const date = v.lastAccess ? new Date(v.lastAccess).toLocaleString('en-PH') : '—';
+        const watchedAt = v.watchedAt ? new Date(v.watchedAt).toLocaleString('en-PH') : '—';
+
+        return `<tr>
+          <td><strong>${v.name || key}</strong></td>
+          <td>${status}</td>
+          <td style="color:var(--muted);font-size:12px">${date}</td>
+          <td style="color:var(--muted);font-size:12px">${watchedAt}</td>
+          <td>
+            <button class="action-btn" onclick="resetViewer('${key}')">🔄 Reset</button>
+            <button class="action-btn danger" onclick="deleteViewer('${key}')">🗑️ Delete</button>
+          </td>
+        </tr>`;
+      }).join('');
+
+      wrap.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Status</th>
+              <th>First Access</th>
+              <th>Watched At</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+
+      updateStats(keys.length, watched, pending, resetCount);
+
+    } catch(e) {
+      wrap.innerHTML = '<div class="empty-state">Error loading. Check Firebase config.</div>';
+    }
+  }
+
+  function updateStats(total, watched, pending, reset) {
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-watched').textContent = watched;
+    document.getElementById('stat-pending').textContent = pending;
+    document.getElementById('stat-reset').textContent = reset;
+  }
+
+  window.resetViewer = async function(key) {
+    await update(ref(db, 'viewers/' + key), { watched: false, reset: true, resetAt: new Date().toISOString() });
+    showToast('✅ Access reset! Pwede na siyang manood ulit.');
+    loadViewers();
+  }
+
+  window.deleteViewer = async function(key) {
+    if (confirm('Delete this viewer record?')) {
+      await remove(ref(db, 'viewers/' + key));
+      showToast('🗑️ Viewer deleted.');
+      loadViewers();
+    }
+  }
+
+  window.saveSetting = async function(settingKey, inputId) {
+    const val = document.getElementById(inputId).value.trim();
+    if (!val) return;
+    await set(ref(db, 'settings/' + settingKey), val);
+    showToast('✅ Setting saved!');
+  }
+
+  window.loadSettings = async function() {
+    try {
+      const snap = await get(ref(db, 'settings'));
+      if (snap.exists()) {
+        const s = snap.val();
+        if (s.viewerPassword) document.getElementById('set-viewer-pass').value = s.viewerPassword;
+        if (s.videoDuration) document.getElementById('set-duration').value = s.videoDuration;
+        if (s.videoId) document.getElementById('set-video-id').value = s.videoId;
+      }
+    } catch(e) {}
+  }
+</script>
+</body>
+</html>
