@@ -103,6 +103,26 @@
     padding: 8px 20px; font-size: 12px; color: var(--muted); white-space: nowrap; z-index: 10;
   }
 
+  /* PLAY OVERLAY */
+  .play-overlay {
+    position: absolute; inset: 0; z-index: 8;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.5);
+    cursor: pointer; transition: background 0.2s;
+  }
+  .play-overlay:hover { background: rgba(0,0,0,0.35); }
+  .play-btn-circle {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: var(--green); display: flex;
+    align-items: center; justify-content: center;
+    margin-bottom: 16px;
+    box-shadow: 0 0 40px var(--green-glow);
+    transition: transform 0.2s, background 0.2s;
+  }
+  .play-overlay:hover .play-btn-circle { transform: scale(1.08); background: var(--green-light); }
+  .play-label { color: #fff; font-size: 14px; letter-spacing: 1px; font-weight: 500; }
+
   /* END SCREEN */
   #end-screen {
     display: none; position: fixed; inset: 0; background: var(--black);
@@ -170,10 +190,19 @@
   </div>
   <div class="video-wrapper">
     <iframe id="drive-frame"
-      src="https://www.youtube.com/embed/-pNmN87ZmOo?autoplay=1&controls=0&disablekb=1&fs=0&modestbranding=1&rel=0&iv_load_policy=3"
-      allow="autoplay; encrypted-media"
+      src="https://www.youtube.com/embed/-pNmN87ZmOo?autoplay=0&controls=0&disablekb=1&fs=0&modestbranding=1&rel=0&iv_load_policy=3&showinfo=0&cc_load_policy=0&playsinline=1&enablejsapi=1"
+      allow="autoplay; encrypted-media; picture-in-picture"
       allowfullscreen="false"></iframe>
-    <div class="video-blocker" oncontextmenu="return false;"></div>
+    <!-- Custom Play Button Overlay -->
+    <div class="play-overlay" id="play-overlay" onclick="startVideo()">
+      <div class="play-btn-circle">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <polygon points="12,8 30,18 12,28" fill="white"/>
+        </svg>
+      </div>
+      <div class="play-label">I-click para magsimula ang video</div>
+    </div>
+    <div class="video-blocker" id="video-blocker" oncontextmenu="return false;" style="display:none;"></div>
     <div class="progress-bar-wrap">
       <div class="progress-bar-fill" id="progress-fill"></div>
     </div>
@@ -275,29 +304,49 @@
     if (e.key === 'Enter') window.checkPassword();
   });
 
+  let cinemaViewerRef = null;
+  let cinemaUpdate = null;
+
   function startCinema(nameKey, viewerRef, update) {
+    cinemaViewerRef = viewerRef;
+    cinemaUpdate = update;
     document.getElementById('cinema-screen').classList.add('active');
-
-    const fill = document.getElementById('progress-fill');
-    let elapsed = 0;
-
-    const interval = setInterval(async () => {
-      elapsed++;
-      fill.style.width = Math.min((elapsed / VIDEO_DURATION_SECONDS) * 100, 100) + '%';
-      if (elapsed >= VIDEO_DURATION_SECONDS) {
-        clearInterval(interval);
-        // Mark as watched in Firebase
-        await update(viewerRef, { watched: true, reset: false, watchedAt: new Date().toISOString() });
-        showEndScreen();
-      }
-    }, 1000);
-
     document.addEventListener('contextmenu', e => e.preventDefault());
     document.addEventListener('keydown', e => {
       if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','f','F','k','K','j','J','l','L'].includes(e.key)) {
         e.preventDefault();
       }
     });
+  }
+
+  window.startVideo = function() {
+    // Hide play overlay
+    document.getElementById('play-overlay').style.display = 'none';
+
+    // Reload iframe with autoplay=1 to start video
+    const frame = document.getElementById('drive-frame');
+    frame.src = "https://www.youtube.com/embed/-pNmN87ZmOo?autoplay=1&controls=0&disablekb=1&fs=0&modestbranding=1&rel=0&iv_load_policy=3&showinfo=0&cc_load_policy=0&playsinline=1&enablejsapi=1";
+
+    // Add blocker after play starts
+    setTimeout(() => {
+      const blocker = document.getElementById('video-blocker');
+      if (blocker) blocker.style.display = 'block';
+    }, 1000);
+
+    // Start progress bar and timer
+    const fill = document.getElementById('progress-fill');
+    let elapsed = 0;
+    const interval = setInterval(async () => {
+      elapsed++;
+      fill.style.width = Math.min((elapsed / VIDEO_DURATION_SECONDS) * 100, 100) + '%';
+      if (elapsed >= VIDEO_DURATION_SECONDS) {
+        clearInterval(interval);
+        if (cinemaViewerRef && cinemaUpdate) {
+          await cinemaUpdate(cinemaViewerRef, { watched: true, reset: false, watchedAt: new Date().toISOString() });
+        }
+        showEndScreen();
+      }
+    }, 1000);
   }
 
   function showEndScreen() {
